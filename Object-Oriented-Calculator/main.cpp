@@ -89,7 +89,8 @@ int main() {
   keyboard.addKey(&keyMemorySubtraction);
   keyboard.addKey(&keyEqual);
 
-
+  //Terminal Display:
+  
   key5.press();
   
   keyDivision.press();
