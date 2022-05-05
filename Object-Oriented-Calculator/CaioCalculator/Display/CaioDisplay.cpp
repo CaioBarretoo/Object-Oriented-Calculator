@@ -40,7 +40,7 @@ CaioDisplay::CaioDisplay(){
 //******************************************************************
 
   void CaioDisplay::setSignal(Signal signal){
-    if(NEGATIVE) std::cout << "-"; 
+    if(signal == NEGATIVE) std::cout << "-"; 
   }
 
 //******************************************************************
