@@ -6,9 +6,41 @@
 #include <cmath>
 
 
+CaioCpu::CaioCpu(){
+  this->countDecimalSeparator = 0;
+  this->is_true_DecimalSeparator = 0;
+  this->operationCounter = 0;
+  this->operation = 0;      
+  this->countDigits = 0;
+  this->count_equal = 0;
+  this->memory_disc = 0;
+  this->control_mrc = 0;
+  this->is_integer = 0;
+  
+  //FLOAT
+  this->operation1 = 0.0;
+  this->operation2 = 0.0;
+  this->memo = 0.0;
+  this->memory = 0.0;
+  this->memo1 = 0.0;
+  this->memo2 = 0.0;
+  
+  //BOOL
+  this->decimal_separator = false;
+  this->control_equal = false;
+}
+
+//******************************************************************
+//                        RECEIVE DIGIT                            *
+//******************************************************************
+
   void CaioCpu::receiveDigit(Digit digit){  
     this->count_equal = 0;
     char digitChar = this->digitToChar(digit);
+
+    if(this->countDigits == 0 && this->operation == 0){
+      this->display?this->display->clear() : void();
+    }
 
     if(this->countDigits < 8){
       if(this->operation == 0){
@@ -22,36 +54,53 @@
     this->countDigits++;
   }
 
+//******************************************************************
+//                        RECEIVE OPERATION                        *
+//******************************************************************
+
   void CaioCpu::receiveOperation(Operation op){
     this->operationCounter++;
     this->operation = 1;
     std::cout << "\n\n";
+
     if(op == SUBTRACTION && this->operationCounter > 1){
       this->display?this->display->setSignal(NEGATIVE): void();
     }
+
     if(op == SUBTRACTION && this->operationCounter == 1){
       this->display?this->display->setSignal(NEGATIVE): void();
       this->operation = 0;
     }
-    if(this->countDigits != 0){
+
+    if(this->countDigits != 0 || op != SUBTRACTION){
       this->store_operation = op;
     }
+
     this->operation1 = this->charToFloat(this->firstOperation);
     this->countDigits = 0;
     this->decimal_separator = false;
+
     if(this->control_operation == false){
         this->control_operation = true;
     }
+
     this->receive_operation = op;
+
     if(op == SUBTRACTION){
       this->signal = NEGATIVE;
     }
   }
+
+//******************************************************************
+//                        RECEIVE CONTROL                          *
+//******************************************************************
+
   void CaioCpu::receiveControl(Control control){
     switch (control){
       case CLEAR: 
         this->operation = 0;
         this->display?this->display->clear(): void();
+        this->display?this->display->add(ZERO): void();
         this->countDigits = 0;
         memset(this->firstOperation, '\0', 9);
         memset(this->secondOperation, '\0', 9);
@@ -65,6 +114,7 @@
 
       case RESET: 
         this->display?this->display->clear(): void();
+        this->display?this->display->add(ZERO): void();
         this->countDigits = 0;
         memset(this->firstOperation, '\0', 9);
         memset(this->secondOperation, '\0', 9);
@@ -81,17 +131,24 @@
         break;
 
       case DECIMAL_SEPARATOR:
-        is_true_DecimalSeparator += 1;
-        if(this->decimal_separator == false){
-          if(this->operation == 0){
-            this->firstOperation[this->countDigits] = '.';
-          } else {
-            this->secondOperation[this->countDigits] = '.';
+        this->is_true_DecimalSeparator += 1;
+
+        if(this->countDigits == 0 || this->operation < 2){
+          if(this->countDigits == 0 && this->operation == 1){
+            this->display?this->display->add(ZERO): void();
           }
-          std::cout << ".";
-          this->countDigits++;
-          this->decimal_separator = true;
+          if(this->decimal_separator == false){
+            if(this->operation == 0){
+              this->firstOperation[this->countDigits] = '.';
+            } else {
+              this->secondOperation[this->countDigits] = '.';
+            }
+            std::cout << ".";
+            this->countDigits++;
+            this->decimal_separator = true;
+          }
         }
+
         break;
 
       case MEMORY_READ_CLEAR: 
@@ -165,6 +222,9 @@
           if(this->count_equal == 0){
             this->memo = this->operation2;
           }
+
+          this->receive_operation = this->store_operation;
+
           this->count_equal++;
           this->control_equal = true;
 
@@ -173,37 +233,31 @@
             {
             case ADDITION:
               this->operation1 = this->operation1 + (this->memo);
-              this->operation2 = 0;
               memset(this->secondOperation, '\0', 9);
               break;
 
             case SUBTRACTION:
               this->operation1 = this->operation1 - (this->memo);
-              this->operation2 = 0;
               memset(this->secondOperation, '\0', 9);
               break;
 
             case DIVISION:
               this->operation1 = this->operation1 / this->memo;
-              this->operation2 = 0;
               memset(this->secondOperation, '\0', 9);
               break;
 
             case MULTIPLICATION:
               this->operation1 = this->operation1 * this->memo;
-              this->operation2 = 0;
               memset(this->secondOperation, '\0', 9);
               break;
 
             case SQUARE_ROOT:
               this->operation1 = sqrt(this->operation1);
-              this->operation2 = 0;
               memset(this->secondOperation, '\0', 9);
               break;
 
             case PERCENTAGE:
               this->operation1 = this->operation1 / 100;
-              this->operation2 = 0;
               memset(this->secondOperation, '\0', 9);
               break;
             
@@ -219,6 +273,10 @@
 
     }
   }
+
+//******************************************************************
+//                     CONVERTING DIGIT TO CHAR                    *
+//******************************************************************
 
   char CaioCpu::digitToChar(Digit digit){
     switch(digit){
@@ -246,6 +304,10 @@
     return this->digit;
   }
 
+//******************************************************************
+//                   CONVERTING CHAR TO FLOAT                      *
+//******************************************************************
+
   float CaioCpu::charToFloat(char* operation){
     float num;
     num = atof(operation); 
@@ -256,9 +318,17 @@
     return num;
   }
 
+//******************************************************************
+//                     CONVERTING FLOAT TO CHAR                    *
+//******************************************************************
+
   void CaioCpu::floatToChar(float operation){
     std::sprintf(this->firstOperation,"%.3f", operation);
   }
+
+//******************************************************************
+//              CONVERTING RESULT IN FLOAT TO DIGIT                *
+//******************************************************************
 
   void CaioCpu::convertResultToDigit(float num){
     this->floatToChar(num);

@@ -10,8 +10,3 @@ class CaioKeyboard: public Keyboard{
       void receiveOperation(Operation );
       void receiveControl(Control );
 };
-
-// class CaioKey:public Key{
-//   public:
-//     void press();
-// };
